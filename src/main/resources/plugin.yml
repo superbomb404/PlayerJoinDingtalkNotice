@@ -1,0 +1,4 @@
+name: PlayerJoinDingtalkNotice
+version: '1.0'
+main: ljsure.cn.PlayerJoinDingtalkNotice
+api-version: '1.21'
