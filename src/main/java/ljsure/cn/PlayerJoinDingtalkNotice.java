@@ -13,11 +13,12 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class PlayerJoinDingtalkNotice extends JavaPlugin implements Listener {
 
@@ -54,10 +55,10 @@ public class PlayerJoinDingtalkNotice extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         String playerName = event.getPlayer().getName();
-        String ipAddress = Objects.requireNonNull(event.getPlayer().getAddress()).getAddress().getHostAddress().split(":")[0];
+        String ipAddress = getPlayerIP(event.getPlayer().getAddress());
         String time = sdf.format(new Date());
 
-        getLogger().info(String.format("检测到玩家 %s 加入服务器 (IP: %s)", playerName, ipAddress));
+//        getLogger().info(String.format("检测到玩家 %s 加入服务器 (IP: %s)", playerName, ipAddress));
 
         String coordinates = getPlayerCoordinates(event.getPlayer().getLocation().getWorld().getName(),
                 event.getPlayer().getLocation());
@@ -71,10 +72,10 @@ public class PlayerJoinDingtalkNotice extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         String playerName = event.getPlayer().getName();
-        String ipAddress = Objects.requireNonNull(event.getPlayer().getAddress()).getAddress().getHostAddress().split(":")[0];
+        String ipAddress = getPlayerIP(event.getPlayer().getAddress());
         String time = sdf.format(new Date());
 
-        getLogger().info(String.format("检测到玩家 %s 离开服务器 (IP: %s)", playerName, ipAddress));
+//        getLogger().info(String.format("检测到玩家 %s 离开服务器 (IP: %s)", playerName, ipAddress));
 
         String coordinates = getPlayerCoordinates(event.getPlayer().getLocation().getWorld().getName(),
                 event.getPlayer().getLocation());
@@ -85,6 +86,37 @@ public class PlayerJoinDingtalkNotice extends JavaPlugin implements Listener {
         sendToDingTalk(message);
     }
 
+    private String getPlayerIP(InetSocketAddress socketAddress) {
+        try {
+            if (socketAddress == null) {
+                getLogger().warning("无法获取玩家地址：SocketAddress为null");
+                return "未知";
+            }
+
+            InetAddress inetAddress = socketAddress.getAddress();
+            if (inetAddress == null) {
+                getLogger().warning("无法解析IP地址：" + socketAddress);
+                return "未知";
+            }
+
+            // 记录原始地址信息用于调试
+//            getLogger().info("原始地址信息: " + socketAddress);
+
+            // 获取完整IP地址（自动处理IPv4/IPv6）
+            String fullIP = inetAddress.getHostAddress();
+//            getLogger().info("解析后的IP地址: " + fullIP);
+
+            // 处理IPv6带端口的情况（如[2409:...]:12345）
+            if (fullIP.contains("%")) {
+                fullIP = fullIP.split("%")[0];
+            }
+            return fullIP;
+        } catch (Exception e) {
+            getLogger().warning("获取IP地址时出错: " + e.getMessage());
+            return "未知";
+        }
+    }
+
     private String getPlayerCoordinates(String worldName, org.bukkit.Location location) {
         try {
             String coordinates = String.format("%s世界 (%d, %d, %d)",
@@ -92,7 +124,7 @@ public class PlayerJoinDingtalkNotice extends JavaPlugin implements Listener {
                     location.getBlockX(),
                     location.getBlockY(),
                     location.getBlockZ());
-            getLogger().info("成功获取玩家坐标: " + coordinates);
+//            getLogger().info("成功获取玩家坐标: " + coordinates);
             return coordinates;
         } catch (Exception e) {
             getLogger().warning("获取坐标时出错: " + e.getMessage());
